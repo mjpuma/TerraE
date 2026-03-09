@@ -27,4 +27,7 @@ soil_schemes/
 soil_maps_*.png
 original_soil_maps_*.png
 soil_schemes_comparison.png
-modelE2.1.2/
+
+# Archive (legacy ModelE, soil schemes, outputs)
+archive/*
+!archive/README.md

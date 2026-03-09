@@ -32,19 +32,21 @@ PYTHONPATH=src python scripts/visualize_run.py
 ## Project Structure
 
 ```
-├── src/terrae/           # Core model
-│   ├── constants.py      # Physical constants (ModelE compatible)
-│   ├── types.py          # Data structures (NGM, IMT, etc.)
-│   ├── driver.py         # Time stepping, advance_bare_soil
-│   └── soil/
-│       ├── hydraulic.py  # van Genuchten–Mualem (ROSETTA params)
-│       ├── hydrology.py  # reth, hydra, fl, runoff, ImplicitRichards
-│       ├── heat.py       # Thermal conductivity, heat flux
-│       └── properties.py # get_soil_properties (thets, thetm, shc)
-├── scripts/              # Sample runs and visualization
-├── doc/                  # Technical documentation
+├── src/
+│   ├── terrae/                    # Core Python model
+│   │   ├── constants.py           # Physical constants (ModelE compatible)
+│   │   ├── types.py               # Data structures (NGM, IMT, etc.)
+│   │   ├── driver.py              # Time stepping, advance_bare_soil
+│   │   └── soil/
+│   │       ├── hydraulic.py       # van Genuchten–Mualem (ROSETTA params)
+│   │       ├── hydrology.py       # reth, hydra, fl, runoff, ImplicitRichards
+│   │       ├── heat.py            # Thermal conductivity, heat flux
+│   │       └── properties.py      # get_soil_properties (thets, thetm, shc)
+│   └── terrae_biome_interface.f90 # BiomeE coupling interface (Section 9)
+├── scripts/                       # Sample runs and visualization
+├── doc/                           # Technical documentation
 ├── tests/
-└── utilities/            # Soil layer generators, ModelE input tools
+└── utilities/                     # Soil layer generators, ModelE input tools
 ```
 
 ## Soil Hydraulics
@@ -57,9 +59,20 @@ Uses **van Genuchten–Mualem** (standard in CLM, JULES, HYDRUS) with **ROSETTA*
 
 Both solvers use identical boundary conditions for direct comparison.
 
+## BiomeE Coupling
+
+TerraE provides a **BiomeE interface** (`src/terrae_biome_interface.f90`) for coupling with the BiomeE ecosystem model. The design minimizes changes to BiomeE: add `USE terrae_biome_interface` and replace BiomeE's bucket soil update with `biome_set_soil_from_terrae()`.
+
+**Interface routines (called by TerraE Python via f2py/cffi):**
+- `biome_set_forcings` — Push atmospheric + soil state to BiomeE
+- `biome_get_exports` — Pull canopy properties + transpiration from BiomeE
+- `biome_run` — Advance BiomeE one GCM timestep
+
+**Compilation:** `gfortran -c terrae_biome_interface.f90`; link with BiomeE objects and TerraE Python extension. See [TerraE Technical Description v2, Section 9](https://docs.google.com/document/d/1SbJ_u2jiyf-StvHdLiyalWJMrme8LZCUNlxqdWnR1eI/edit?tab=t.5ql9wgu3mmls) for full interface specification and Section 9.7 for the planned psi-based water-stress improvement.
+
 ## Technical Documentation
 
-- **TerraE Technical Description v2**: [Google Doc](https://docs.google.com/document/d/1SbJ_u2jiyf-StvHdLiyalWJMrme8LZCUNlxqdWnR1eI/edit?usp=sharing)
+- **TerraE Technical Description v2**: [Google Doc](https://docs.google.com/document/d/1SbJ_u2jiyf-StvHdLiyalWJMrme8LZCUNlxqdWnR1eI/edit?tab=t.5ql9wgu3mmls) — see especially **Section 9** (BiomeE interface)
 - **LaTeX for Overleaf**: `doc/terrae_technical_description.tex` — import into [Overleaf](https://www.overleaf.com) for editing and PDF export
 
 ## Development
@@ -77,8 +90,8 @@ pytest
 2. **Subgrid fractions and processes**  
    Add details on different land-cover fractions (bare soil, vegetated) and their processes: interception, transpiration, vegetated soil evaporation, snow. Implement tile-based water and energy balances.
 
-3. **Coupling with BiomeE**  
-   Integrate with the BiomeE ecosystem model for vegetation dynamics, phenology, and carbon–water feedbacks. Replace/supplement Ent TBM interface.
+3. **Coupling with BiomeE** *(interface initiated)*  
+   The `terrae_biome_interface.f90` module provides the coupling layer. Remaining work: f2py/cffi bindings, psi-based water stress (Section 9.7), and full integration testing.
 
 4. **Coupling with AI co-scientist**  
    Expose model for AI-driven experimentation: parameter sweeps, surrogate modeling, inverse problems, and automated hypothesis testing.
