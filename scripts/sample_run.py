@@ -82,6 +82,7 @@ def run_simulation(
     runoff_cum[0] = 0.0
 
     total_runoff = 0.0
+    deep_perc_cum_arr = np.zeros(n_steps + 1)
     for step in range(n_steps):
         hour = (step * dt_hours) % 24
         day = int(step * dt_hours / 24)
@@ -90,7 +91,7 @@ def run_simulation(
         pr = precip_event(day, hour)
         htpr = pr * 4185 * 288 if pr > 0 else 0.0  # Rain at 15°C
 
-        w, ht, run, evap, _, _ = advance_bare_soil(
+        w, ht, run, evap, _, deep_perc = advance_bare_soil(
             w,
             ht,
             dz,
@@ -109,6 +110,7 @@ def run_simulation(
         )
 
         total_runoff += run
+        deep_perc_cum_arr[step + 1] = deep_perc_cum_arr[step] + deep_perc
         time_h[step + 1] = (step + 1) * dt_hours
         theta_all[step + 1] = w[:n] / dz[:n]
         tp, _ = retp(w, ht, shc, n)
@@ -124,6 +126,7 @@ def run_simulation(
         tp=tp_all,
         w_tot=w_tot,
         runoff_cum=runoff_cum,
+        deep_perc_cum=deep_perc_cum_arr,
         pr=pr_all,
         zc=zc[:n],
         dz=dz[:n],
@@ -212,6 +215,7 @@ def run_simulation_multi_column(
     pr_all[0] = 0.0
 
     total_runoff = 0.0
+    deep_perc_cum_arr = np.zeros(n_steps + 1)
     for step in range(n_steps):
         hour = (step * dt_hours) % 24
         day = int(step * dt_hours / 24)
@@ -220,13 +224,14 @@ def run_simulation_multi_column(
         pr = precip_event(day, hour)
         htpr = pr * 4185 * 288 if pr > 0 else 0.0
 
-        w, ht, run, evap = advance_cell(
+        w, ht, run, evap, deep_perc = advance_cell(
             w, ht, fractions, dz, q, qk, sl,
             pr=pr, htpr=htpr, srht=forc["srht"], trht=forc["trht"], ts=forc["ts"],
             rho=1.2, ch=0.01, vs=4.0, dt=dt_sec, irrig=irrig_rates,
         )
 
         total_runoff += run
+        deep_perc_cum_arr[step + 1] = deep_perc_cum_arr[step] + deep_perc
         time_h[step + 1] = (step + 1) * dt_hours
         irrig_cum[step + 1] = irrig_cum[step] + irrig_rate_cell * dt_sec
         theta_all[step + 1] = w[:n, :] / dz[:n, np.newaxis]
@@ -246,6 +251,7 @@ def run_simulation_multi_column(
         w_tot=w_tot,
         w_tot_cols=w_tot_cols,
         runoff_cum=runoff_cum,
+        deep_perc_cum=deep_perc_cum_arr,
         irrig_cum=irrig_cum,
         pr=pr_all,
         fractions=fractions,

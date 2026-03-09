@@ -223,7 +223,7 @@ def advance_cell(
     vs: float,
     dt: float,
     irrig: NDArray[np.float64] | None = None,
-) -> tuple[NDArray[np.float64], NDArray[np.float64], float, float]:
+) -> tuple[NDArray[np.float64], NDArray[np.float64], float, float, float]:
     """
     Advance grid cell with multiple land cover columns. Area-weighted aggregation.
 
@@ -235,7 +235,7 @@ def advance_cell(
     sl: (n_cols) slope per column (urban can have higher runoff)
     irrig: (n_cols) irrigation flux m/s per column, or None for zeros
 
-    Returns updated w, ht, area-weighted total runoff, area-weighted total evap.
+    Returns updated w, ht, area-weighted total runoff, total evap, total deep percolation.
     """
     types.validate_fractions(fractions)
     n_cols = fractions.shape[0]
@@ -245,21 +245,23 @@ def advance_cell(
 
     total_runoff = 0.0
     total_evap = 0.0
+    total_deep_perc = 0.0
 
     for j in range(n_cols):
         if fractions[j] < 1e-12:
             continue
         w_j = w[:, j].copy()
         ht_j = ht[:, j].copy()
-        w_j, ht_j, run, evap, _, _ = advance_bare_soil(
+        w_j, ht_j, run, evap, _, deep_perc = advance_bare_soil(
             w_j, ht_j, dz, q, qk, sl[j], pr, htpr, srht, trht, ts, rho, ch, vs, dt, irrig=irrig[j]
         )
         w[:, j] = w_j
         ht[:, j] = ht_j
         total_runoff += fractions[j] * run
         total_evap += fractions[j] * evap
+        total_deep_perc += fractions[j] * deep_perc
 
-    return w, ht, total_runoff, total_evap
+    return w, ht, total_runoff, total_evap, total_deep_perc
 
 
 def check_water(

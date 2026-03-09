@@ -226,7 +226,7 @@ def test_advance_cell_multi_column() -> None:
     ht = np.zeros((types.NGM + 1, n_cols))
     ht[:6, :] = 1e5
 
-    w_out, ht_out, run, evap = advance_cell(
+    w_out, ht_out, run, evap, _ = advance_cell(
         w.copy(), ht.copy(), fractions, dz, q, qk, sl,
         pr=0.0, htpr=0.0, srht=200.0, trht=300.0, ts=288.0,
         rho=1.2, ch=0.01, vs=4.0, dt=3600.0,

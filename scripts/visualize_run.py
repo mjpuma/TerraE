@@ -96,14 +96,17 @@ def plot_all(data: dict, figpath: Path | None = None) -> None:
     ax4.grid(True, alpha=0.3)
     ax4.set_xlim(0, time_d[-1])
 
-    # --- Panel 5: Hovmöller - theta vs depth and time ---
+    # --- Panel 5: Hovmöller - theta vs depth and time (depth 0 at top) ---
     ax5 = fig.add_subplot(4, 2, 5)
-    depth = -zc
+    dz = data["dz"]
+    depth_edges = np.concatenate([[0], np.cumsum(dz)])
+    dt_d = time_d[1] - time_d[0] if len(time_d) > 1 else 1.0 / 24.0
+    time_edges = np.concatenate([time_d, [time_d[-1] + dt_d]])
     im = ax5.pcolormesh(
-        time_d,
-        depth,
+        time_edges,
+        depth_edges,
         theta.T,
-        shading="auto",
+        shading="flat",
         cmap="YlGnBu",
         vmin=thetm[0],
         vmax=thets[0],
@@ -114,13 +117,14 @@ def plot_all(data: dict, figpath: Path | None = None) -> None:
     ax5.invert_yaxis()
     plt.colorbar(im, ax=ax5, label="θ (m³/m³)")
 
-    # --- Panel 6: Vertical moisture profiles at selected times ---
+    # --- Panel 6: Vertical moisture profiles at selected times (depth 0 at top) ---
     ax6 = fig.add_subplot(4, 2, 6)
     t_select = [0, 2, 5, 7, 10, 13]
     colors = plt.cm.viridis(np.linspace(0, 1, len(t_select)))
+    depth_centers = np.cumsum(dz) - 0.5 * dz
     for i, td in enumerate(t_select):
         idx = np.argmin(np.abs(time_d - td))
-        ax6.plot(theta[idx, :], -zc, "o-", color=colors[i], label=f"Day {time_d[idx]:.1f}")
+        ax6.plot(theta[idx, :], depth_centers, "o-", color=colors[i], label=f"Day {time_d[idx]:.1f}")
     ax6.axvline(thets[0], color="gray", ls="--", alpha=0.7)
     ax6.axvline(thetm[0], color="gray", ls=":", alpha=0.7)
     ax6.set_xlabel("θ (m³/m³)")
@@ -130,20 +134,20 @@ def plot_all(data: dict, figpath: Path | None = None) -> None:
     ax6.grid(True, alpha=0.3)
     ax6.invert_yaxis()
 
-    # --- Panel 7: Temperature Hovmöller ---
+    # --- Panel 7: Temperature Hovmöller (depth 0 at top) ---
     ax7 = fig.add_subplot(4, 2, 7)
-    im7 = ax7.pcolormesh(time_d, depth, tp.T, shading="auto", cmap="RdYlBu_r")
+    im7 = ax7.pcolormesh(time_edges, depth_edges, tp.T, shading="flat", cmap="RdYlBu_r")
     ax7.set_xlabel("Time (days)")
     ax7.set_ylabel("Depth (m)")
     ax7.set_title("(g) Soil temperature Hovmöller")
     ax7.invert_yaxis()
     plt.colorbar(im7, ax=ax7, label="T (°C)")
 
-    # --- Panel 8: Vertical temperature profiles at selected times ---
+    # --- Panel 8: Vertical temperature profiles at selected times (depth 0 at top) ---
     ax8 = fig.add_subplot(4, 2, 8)
     for i, td in enumerate(t_select):
         idx = np.argmin(np.abs(time_d - td))
-        ax8.plot(tp[idx, :], -zc, "o-", color=colors[i], label=f"Day {time_d[idx]:.1f}")
+        ax8.plot(tp[idx, :], depth_centers, "o-", color=colors[i], label=f"Day {time_d[idx]:.1f}")
     ax8.set_xlabel("Temperature (°C)")
     ax8.set_ylabel("Depth (m)")
     ax8.set_title("(h) Temperature profiles at selected times")
@@ -239,12 +243,12 @@ def plot_subgrid_fractions(data: dict, figpath: Path | None = None) -> None:
 
 
 def plot_subgrid_hovmoller(data: dict) -> None:
-    """Hovmöller (theta vs depth-time) for each land cover column."""
+    """Hovmöller (theta vs depth-time) for each land cover column. Depth 0 at top."""
     FIG_DIR.mkdir(parents=True, exist_ok=True)
 
     time_h = data["time_h"]
     theta = data["theta"]
-    zc = data["zc"]
+    dz = data["dz"]
     thets = data["thets"]
     thetm = data["thetm"]
     fractions = data["fractions"]
@@ -254,7 +258,9 @@ def plot_subgrid_hovmoller(data: dict) -> None:
 
     n_cols = theta.shape[2]
     time_d = time_h / 24.0
-    depth = -zc
+    depth_edges = np.concatenate([[0], np.cumsum(dz)])
+    dt_d = time_d[1] - time_d[0] if len(time_d) > 1 else 1.0 / 24.0
+    time_edges = np.concatenate([time_d, [time_d[-1] + dt_d]])
 
     # Same color scale for all Hovmöller panels
     vmin, vmax = float(thetm[0]), float(thets[0])
@@ -269,10 +275,10 @@ def plot_subgrid_hovmoller(data: dict) -> None:
             continue
 
         im = ax.pcolormesh(
-            time_d,
-            depth,
+            time_edges,
+            depth_edges,
             theta[:, :, j].T,
-            shading="auto",
+            shading="flat",
             cmap="YlGnBu",
             vmin=vmin,
             vmax=vmax,
@@ -290,12 +296,12 @@ def plot_subgrid_hovmoller(data: dict) -> None:
 
 
 def plot_subgrid_temp_hovmoller(data: dict) -> None:
-    """Hovmöller (temperature vs depth-time) for each land cover column."""
+    """Hovmöller (temperature vs depth-time) for each land cover column. Depth 0 at top."""
     FIG_DIR.mkdir(parents=True, exist_ok=True)
 
     time_h = data["time_h"]
     tp = data["tp"]
-    zc = data["zc"]
+    dz = data["dz"]
     fractions = data["fractions"]
 
     lct = data.get("land_cover_types")
@@ -303,7 +309,9 @@ def plot_subgrid_temp_hovmoller(data: dict) -> None:
 
     n_cols = tp.shape[2]
     time_d = time_h / 24.0
-    depth = -zc
+    depth_edges = np.concatenate([[0], np.cumsum(dz)])
+    dt_d = time_d[1] - time_d[0] if len(time_d) > 1 else 1.0 / 24.0
+    time_edges = np.concatenate([time_d, [time_d[-1] + dt_d]])
 
     fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey=True)
     axes = axes.flatten()
@@ -315,10 +323,10 @@ def plot_subgrid_temp_hovmoller(data: dict) -> None:
             continue
 
         im = ax.pcolormesh(
-            time_d,
-            depth,
+            time_edges,
+            depth_edges,
             tp[:, :, j].T,
-            shading="auto",
+            shading="flat",
             cmap="RdYlBu_r",
         )
         ax.set_title(f"{col_names[j]} ({fractions[j]:.0%})")
@@ -387,7 +395,7 @@ def plot_subgrid_comparison(data: dict) -> None:
 
 
 def plot_water_balance(data: dict) -> None:
-    """Water balance check: precip (+ irrig) - runoff - change in storage."""
+    """Water balance check: precip (+ irrig) - runoff - deep_perc - change in storage."""
     FIG_DIR.mkdir(parents=True, exist_ok=True)
 
     time_h = data["time_h"]
@@ -395,6 +403,7 @@ def plot_water_balance(data: dict) -> None:
     runoff_cum = data["runoff_cum"]
     pr = data["pr"]
     irrig_cum = data.get("irrig_cum")
+    deep_perc_cum = data.get("deep_perc_cum")
 
     dt_sec = np.diff(time_h) * 3600
     pr_cum = np.concatenate([[0], np.cumsum(pr[1:] * dt_sec)])
@@ -403,13 +412,19 @@ def plot_water_balance(data: dict) -> None:
     else:
         water_in = pr_cum
     storage_change = w_tot - w_tot[0]
-    balance = water_in - runoff_cum - storage_change
+    # Full balance: water_in - runoff - deep_perc - storage_change = 0
+    if deep_perc_cum is not None:
+        balance = water_in - runoff_cum - deep_perc_cum - storage_change
+    else:
+        balance = water_in - runoff_cum - storage_change
 
     fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
     axes[0].plot(time_h / 24, pr_cum * 1000, label="Cum. precip (mm)")
     if irrig_cum is not None:
         axes[0].plot(time_h / 24, irrig_cum * 1000, label="Cum. irrig (mm)")
     axes[0].plot(time_h / 24, runoff_cum * 1000, label="Cum. runoff (mm)")
+    if deep_perc_cum is not None:
+        axes[0].plot(time_h / 24, deep_perc_cum * 1000, label="Cum. deep perc (mm)")
     axes[0].plot(time_h / 24, storage_change * 1000, label="Δ storage (mm)")
     axes[0].set_ylabel("mm")
     axes[0].legend()
@@ -420,7 +435,7 @@ def plot_water_balance(data: dict) -> None:
     axes[1].axhline(0, color="k", ls="--", alpha=0.5)
     axes[1].set_xlabel("Time (days)")
     axes[1].set_ylabel("Balance error (mm)")
-    axes[1].set_title("Conservation residual: (precip+irrig) - runoff - Δstorage")
+    axes[1].set_title("Conservation residual: (precip+irrig) - runoff - deep_perc - Δstorage")
     axes[1].grid(True, alpha=0.3)
 
     plt.tight_layout()

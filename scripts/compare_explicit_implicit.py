@@ -260,10 +260,13 @@ def plot_diagnostics(explicit_data: dict, implicit_data: dict, outpath: Path) ->
     runoff_im = implicit_data["runoff_cum"]
     pr = explicit_data["pr"]
     zc = explicit_data["zc"]
+    dz = explicit_data["dz"]
     thets = explicit_data["thets"][0]
     thetm = explicit_data["thetm"][0]
     n_layers = theta_ex.shape[1]
-    depth = -zc
+    depth_edges = np.concatenate([[0], np.cumsum(dz)])
+    dt_d = time_d[1] - time_d[0] if len(time_d) > 1 else 1.0 / 24.0
+    time_edges = np.concatenate([time_d, [time_d[-1] + dt_d]])
 
     fig = plt.figure(figsize=(14, 18))
     fig.suptitle(
@@ -301,25 +304,24 @@ def plot_diagnostics(explicit_data: dict, implicit_data: dict, outpath: Path) ->
     time_edges = np.concatenate([time_d, [time_d[-1] + dt_d]])
     im3 = ax3.pcolormesh(
         time_edges,
-        np.arange(n_layers + 1),
+        depth_edges,
         diff.T,
         shading="flat",
         cmap="RdBu_r",
         vmin=-0.05,
         vmax=0.05,
     )
-    ax3.set_yticks(np.arange(n_layers) + 0.5)
-    ax3.set_yticklabels([str(i + 1) for i in range(n_layers)])  # 1-based layer index
     ax3.set_title("(c) Difference (Explicit − Implicit)")
-    ax3.set_ylabel("Layer")
+    ax3.set_ylabel("Depth (m)")
+    ax3.invert_yaxis()
     ax3.set_xlabel("Time (days)")
     plt.colorbar(im3, ax=ax3, label="Δθ")
 
-    # --- Row 2: Hovmöller ---
+    # --- Row 2: Hovmöller (depth 0 at top) ---
     ax4 = fig.add_subplot(4, 3, 4)
     im4 = ax4.pcolormesh(
-        time_d, depth, theta_ex.T,
-        shading="auto", cmap="YlGnBu", vmin=thetm, vmax=thets,
+        time_edges, depth_edges, theta_ex.T,
+        shading="flat", cmap="YlGnBu", vmin=thetm, vmax=thets,
     )
     ax4.set_title("(d) Explicit: θ Hovmöller")
     ax4.set_ylabel("Depth (m)")
@@ -328,8 +330,8 @@ def plot_diagnostics(explicit_data: dict, implicit_data: dict, outpath: Path) ->
 
     ax5 = fig.add_subplot(4, 3, 5)
     im5 = ax5.pcolormesh(
-        time_d, depth, theta_im.T,
-        shading="auto", cmap="YlGnBu", vmin=thetm, vmax=thets,
+        time_edges, depth_edges, theta_im.T,
+        shading="flat", cmap="YlGnBu", vmin=thetm, vmax=thets,
     )
     ax5.set_title("(e) Implicit: θ Hovmöller")
     ax5.set_ylabel("Depth (m)")
@@ -338,8 +340,8 @@ def plot_diagnostics(explicit_data: dict, implicit_data: dict, outpath: Path) ->
 
     ax6 = fig.add_subplot(4, 3, 6)
     im6 = ax6.pcolormesh(
-        time_d, depth, diff.T,
-        shading="auto", cmap="RdBu_r", vmin=-0.03, vmax=0.03,
+        time_edges, depth_edges, diff.T,
+        shading="flat", cmap="RdBu_r", vmin=-0.03, vmax=0.03,
     )
     ax6.set_title("(f) Difference Hovmöller")
     ax6.set_ylabel("Depth (m)")
@@ -398,10 +400,11 @@ def plot_diagnostics(explicit_data: dict, implicit_data: dict, outpath: Path) ->
     ax11 = fig.add_subplot(4, 3, 11)
     t_select = [0, 3, 7, 10, 13]
     colors = plt.cm.viridis(np.linspace(0, 1, len(t_select)))
+    depth_centers = np.cumsum(dz) - 0.5 * dz
     for i, td in enumerate(t_select):
         idx = np.argmin(np.abs(time_d - td))
-        ax11.plot(theta_ex[idx, :], -zc, "o-", color=colors[i])
-        ax11.plot(theta_im[idx, :], -zc, "s--", color=colors[i], alpha=0.7)
+        ax11.plot(theta_ex[idx, :], depth_centers, "o-", color=colors[i])
+        ax11.plot(theta_im[idx, :], depth_centers, "s--", color=colors[i], alpha=0.7)
     # Proxy for legend: explicit = circles solid, implicit = squares dashed
     from matplotlib.lines import Line2D
     ax11.legend(
