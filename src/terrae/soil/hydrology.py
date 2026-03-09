@@ -485,8 +485,7 @@ class ImplicitRichards:
     ) -> float:
         """
         Water balance closure per timestep.
-        Tolerance: 1e-4 m (0.1 mm). Failure = bug in Picard loop.
-        Tighten to 1e-6 once formulation validated.
+        Tolerance: 1e-6 m (0.001 mm). Failure = bug in Picard loop.
 
         If variable thickness dz vs dz_int were conflated in
         _build_tridiagonal, this will catch it immediately.
@@ -496,7 +495,7 @@ class ImplicitRichards:
         outflow = deep_perc
         sink_total = np.sum(S * self.dz) * dt
         residual = inflow - outflow - sink_total - delta_S
-        assert abs(residual) < 1e-4, (
+        assert abs(residual) < 1e-6, (
             f"Mass balance FAILED: residual={residual:.2e} m  "
             f"inflow={inflow:.4f}  outflow={outflow:.4f}  "
             f"dS={delta_S:.4f}  sink={sink_total:.4f}"
