@@ -13,7 +13,6 @@ TerraE simulates water and heat transport in soil. This prototype implements a *
 ## Installation
 
 ```bash
-cd terrae_py
 pip install -e .
 ```
 
@@ -33,8 +32,7 @@ PYTHONPATH=src python scripts/visualize_run.py
 ## Project Structure
 
 ```
-terrae_py/
-├── src/terrae/
+├── src/terrae/           # Core model
 │   ├── constants.py      # Physical constants (ModelE compatible)
 │   ├── types.py          # Data structures (NGM, IMT, etc.)
 │   ├── driver.py         # Time stepping, advance_bare_soil
@@ -43,13 +41,10 @@ terrae_py/
 │       ├── hydrology.py  # reth, hydra, fl, runoff, ImplicitRichards
 │       ├── heat.py       # Thermal conductivity, heat flux
 │       └── properties.py # get_soil_properties (thets, thetm, shc)
-├── scripts/
-│   ├── sample_run.py
-│   ├── compare_explicit_implicit.py
-│   └── visualize_run.py
-├── doc/
-│   └── terrae_technical_description.tex  # Overleaf LaTeX
-└── tests/
+├── scripts/              # Sample runs and visualization
+├── doc/                  # Technical documentation
+├── tests/
+└── utilities/            # Soil layer generators, ModelE input tools
 ```
 
 ## Soil Hydraulics
@@ -65,12 +60,11 @@ Both solvers use identical boundary conditions for direct comparison.
 ## Technical Documentation
 
 - **TerraE Technical Description v2**: [Google Doc](https://docs.google.com/document/d/1SbJ_u2jiyf-StvHdLiyalWJMrme8LZCUNlxqdWnR1eI/edit?usp=sharing)
-- **LaTeX for Overleaf**: `terrae_py/doc/terrae_technical_description.tex` — import into [Overleaf](https://www.overleaf.com) for editing and PDF export
+- **LaTeX for Overleaf**: `doc/terrae_technical_description.tex` — import into [Overleaf](https://www.overleaf.com) for editing and PDF export
 
 ## Development
 
 ```bash
-cd terrae_py
 pip install -e ".[dev]"
 pytest
 ```

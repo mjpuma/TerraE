@@ -3,7 +3,7 @@
 ## Sample run and visualization
 
 ```bash
-# From terrae_py/ directory
+# From repo root
 PYTHONPATH=src python scripts/sample_run.py      # Run 14-day simulation
 PYTHONPATH=src python scripts/visualize_run.py   # Generate figures (runs sample if needed)
 ```
