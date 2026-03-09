@@ -1,0 +1,133 @@
+% TerraE Global Land Model v2 — Technical Description
+% For Overleaf: Create new project, upload this file, compile to PDF
+% Source: https://docs.google.com/document/d/1SbJ_u2jiyf-StvHdLiyalWJMrme8LZCUNlxqdWnR1eI/edit
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+\title{Technical Description of the TerraE Global Land Model, v2}
+\author{Michael J. Puma\\Columbia University, Columbia Climate School\\Center for Climate Systems Research}
+\date{2025}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The TerraE Global Land Model (``TerraE'') simulates water and heat transport on a global grid for a set of land tiles within each grid cell. It is used in simulations of climate on both Earth and exoplanets. This document provides the technical description, including the land water balance, energy balances, constitutive relationships, and discretization. The Python prototype (\texttt{terrae\_py}) implements a single-column version as a stepping stone toward full multi-grid-cell coupling.
+\end{abstract}
+
+\section{Overview}
+
+The TerraE Global Land Model simulates water and heat transport for land tiles within each grid cell. The default configuration has one tile for bare soil and another for vegetated soil. For each tile, we have a vertically discretized soil column.
+
+\subsection{Model Structure}
+
+\begin{itemize}
+\item \textbf{Soil column}: Vertically discretized; ModelE2 uses 6 layers (3.5\,m total) with geometric progression. ModelE3 supports flexible depth (7 layers $\sim$3.7\,m shallow, 10 layers $\sim$21.4\,m deep).
+\item \textbf{State variables}: Heat content and water content per layer.
+\item \textbf{Soil texture}: Mixtures of sand, silt, clay, peat, and bedrock (De Lannoy et al., 2014; Pelletier et al., 2016).
+\end{itemize}
+
+\section{Land Water Balance}
+
+The continuity equation for water in soil is
+\begin{equation}
+\frac{\partial \theta_w}{\partial t} + \frac{\partial F_w}{\partial z} = 0
+\end{equation}
+where $\theta_w$ is volumetric soil moisture [m$^3$/m$^3$], $F_w$ is volumetric flux [m$^3$/(m$^2$\,s)], $z$ is elevation ($z=0$ at surface), and $t$ is time [s]. \textbf{Flux is defined as positive upward.}
+
+Darcy's law:
+\begin{equation}
+F_w = -K_w \left( \frac{1}{\rho_w g}\frac{\partial p_c}{\partial z} + 1 \right)
+\end{equation}
+where $K_w$ is unsaturated hydraulic conductivity, $p_c$ is capillary pressure [Pa], $g$ is gravity, $\rho_w$ is water density. The matric potential $\psi = p_c/(\rho_w g)$ is negative (suction). Hydraulic head $h = \psi + z$.
+
+With evapotranspiration $E'$ and subsurface runoff $R'$:
+\begin{equation}
+\frac{\partial \theta_w}{\partial t} + \frac{\partial F_w}{\partial z} - E' - R' = 0
+\end{equation}
+
+\subsection{Discretization}
+
+Darcy's law is discretized as
+\begin{equation}
+F_k = -K_k \frac{h_{k-1} - h_k}{z_{k-1} - z_k}
+\end{equation}
+and the continuity equation in space:
+\begin{equation}
+\Delta z_i \frac{\partial w_i}{\partial t} = \nabla F_i - E_i - R_i
+\end{equation}
+where $w_i$ is water in layer $i$ [m], $\Delta$ is forward difference, $\nabla$ is backward difference, $E_i$ and $R_i$ are evapotranspiration and underground runoff per area.
+
+\subsection{Sign Convention (Appendix B)}
+
+In the code, $z$ is elevation (positive upward). Darcy flux:
+\begin{equation}
+F_l = -K_l \frac{H(l) - H(l-1)}{Z(l) - Z(l-1)}
+\end{equation}
+(Igor Aleinov, GHY). Flux positive = upward.
+
+\section{Energy Balances}
+
+\subsection{Land Energy Balance}
+
+\begin{equation}
+\frac{\partial Q_h}{\partial t} + \frac{\partial F_h}{\partial z} = 0
+\end{equation}
+where $Q_h$ is heat in soil volume [J\,m$^{-3}$], $F_h$ is heat flux [J\,s$^{-1}$\,m$^{-2}$].
+
+Fourier's law with advective term:
+\begin{equation}
+F_h = -K_h \frac{\partial T}{\partial z} + c_w \rho_w F_w T
+\end{equation}
+where $T$ is temperature [K], $K_h$ is thermal conductivity, $c_w$ is specific heat of water.
+
+\subsection{Canopy Energy Balance}
+
+\begin{equation}
+\frac{dH_c}{dt} = R_{n,c} - \lambda F_{h,v} - F_{h,v} - F_{h,P} - F_{h,d}
+\end{equation}
+where $H_c$ is canopy heat, $R_{n,c}$ is net radiation, $\lambda$ is latent heat, $F_{h,v}$ is moisture flux, $F_{h,P}$ is precipitation heat flux, $F_{h,d}$ is throughfall heat flux.
+
+\section{Constitutive Relationships}
+
+\subsection{Soil Hydraulic Properties}
+
+ModelE3 uses \textbf{van Genuchten--Mualem} (ROSETTA parameters). The Python prototype (\texttt{terrae\_py}) implements:
+\begin{itemize}
+\item $\theta(\psi)$: van Genuchten water retention
+\item $K(\theta)$: Mualem hydraulic conductivity
+\item Geometric mean for inter-layer conductivity
+\end{itemize}
+
+\section{Python Prototype (\texttt{terrae\_py})}
+
+The prototype implements:
+\begin{itemize}
+\item \textbf{Explicit solver}: Legacy GHY-style Richards (fl, fllmt) with adaptive sub-stepping
+\item \textbf{Implicit solver}: Mass-conservative Celia et al. (1990) modified Picard with Zeng \& Decker (2009) equilibrium fix
+\item \textbf{Bottom BC}: Unit gradient free drainage (both solvers)
+\item \textbf{Scope}: Single soil column, bare soil only (Phase 1). No canopy, snow, or vegetation yet.
+\end{itemize}
+
+\section*{Citation}
+
+Michael J. Puma, Technical Description of the TerraE Global Land Model, v2, 2025.\\
+\url{https://docs.google.com/document/d/1SbJ_u2jiyf-StvHdLiyalWJMrme8LZCUNlxqdWnR1eI/edit?usp=sharing}
+
+\bibliographystyle{plainnat}
+\begin{thebibliography}{99}
+\bibitem{Abramopoulos1988} Abramopoulos, F., Rosenzweig, C. and Choudhury, B. (1988). Improved ground hydrology calculations for global climate models. \textit{J. Climate}, 1:921--941.
+\bibitem{Rosenzweig1997} Rosenzweig, C. and Abramopoulos, F. (1997). Land-surface model development for the GISS GCM. \textit{J. Climate}, 10:2040--2054.
+\bibitem{Celia1990} Celia, M.A., et al. (1990). A general mass-conservative numerical solution for the unsaturated flow equation. \textit{Water Resour. Res.}, 26:1483--1496.
+\bibitem{Zeng2009} Zeng, X. and Decker, M. (2009). Improving the numerical solution of soil moisture-based Richards equation for land models with a deep or shallow water table. \textit{J. Hydrometeor.}, 10:308--319.
+\end{thebibliography}
+
+\end{document}
