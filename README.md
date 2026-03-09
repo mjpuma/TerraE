@@ -1,6 +1,6 @@
 # TerraE
 
-**TerraE** (*terrae*, Latin: "of the earth") is a large-scale hydrological land model that pays homage to [ModelE](https://github.com/nasa-giss/modelE), NASA GISS's climate model. This Python prototype targets AI co-scientist workflows and modern land-surface modeling.
+**TerraE** (*terrae*, Latin: "of the earth") is a large-scale hydrological land model that pays homage to [ModelE](https://www.giss.nasa.gov/tools/modelE/), NASA GISS's climate model. This Python prototype targets AI co-scientist workflows and modern land-surface modeling.
 
 ## Overview
 
@@ -97,7 +97,7 @@ pytest
 - Rosenzweig, C. & Abramopoulos, F. (1997). Land-surface model development for the GISS GCM. *J. Climate*, 10:2040–2054.
 - Celia, M.A., et al. (1990). A general mass-conservative numerical solution for the unsaturated flow equation. *Water Resour. Res.*, 26:1483–1496.
 - Zeng, X. & Decker, M. (2009). Improving the numerical solution of soil moisture-based Richards equation. *J. Hydrometeor.*, 10:308–319.
-- NASA GISS ModelE: https://github.com/nasa-giss/modelE
+- NASA GISS ModelE: https://www.giss.nasa.gov/tools/modelE/
 
 ## License
 
