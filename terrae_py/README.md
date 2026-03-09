@@ -1,6 +1,6 @@
 # TerraE Python Prototype
 
-Python prototype of the TerraE Global Land Model (NASA GISS ModelE), targeting AI co-scientist workflows and modern land-surface modeling.
+**TerraE** (*terrae*, Latin: "of the earth") is a global land model that pays homage to [ModelE](https://github.com/nasa-giss/modelE), NASA GISS's climate model. This Python prototype targets AI co-scientist workflows and modern land-surface modeling.
 
 ## Overview
 
